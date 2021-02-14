@@ -14,23 +14,35 @@ col_count	fcb $01 ; 00000001b
 timer  fcb 0
 start_led bsz 1
 start_number bsz 1
+direction bsz 1
 
 	org	code
 begin:
 	lds #$000F
 	ldaa #%00000011
-	staa tmsk2	; настройка таймера (коэффициент деления частоты таймера)
+	staa tmsk2	; настройка коэффициента деления частоты таймера
 	ldaa init_PC ; инициализация битов 0 - 2, 7 порта C на выход
-	staa ddrc	 ; бит установлен в 0 - разряд порта работает на вход, 1 - на выход
-	ldab col_count ; загрузка в регистр B начального значения счетчика колонок
+	staa ddrc	 ; бит установлен в 0 - на вход, 1 - на выход
+	ldab col_count ; загрузка начального значения счетчика колонок
+	ldaa #%10000000
+	staa start_led
+	ldaa #%00000001
+	staa direction
+	staa start_number
+
+scan_button:
+    ldaa porta ; загружаем значение с порта A в акк. A
+	anda #%00000001 ; проверяем, нажата ли кнопка
+	beq scan_keys ; если не нажата, то проверяем клавиатуру
+	jmp loop ; иначе запускаем цикл
 	
 scan_keys:
-	cmpb #%08 ; сканирование колонок клавиатуры: проверка на переполнение счечика
+	cmpb #%08 ; проверка на переполнение счечика
 	bne check1A ; переход, если значение B не равно $08
 	ldab col_count ; реинициализация если было переполнение
 
 check1A:
-	stab portc ; загрузка единицы в очередную колонку, если не было переполнения в счетчике
+	stab portc ; загрузка единицы, если не было переполнения в счетчике
 	
 	ldaa porte ; загрузка состояния порта Е в акк. А
 	anda #%0001 ; нажата ли кнопка в первой строке?
@@ -38,31 +50,25 @@ check1A:
 	tba ; перемещение счечика колонок в регистр A из B
 	anda #%0100 ; нажата ли кнопка в первом столбце?
 	beq check2A ; переход, если нет
-	ldaa #%00001000 ; вывод цифры "1"
-	staa porta ; вывод цифры "1"
+	ldaa #%00001000 ; сохраняем цифру "2"
 	staa start_number
-	ldaa #%10000000 ; зажигаем первый диод
-	staa portb ; зажигаем первый диод
+	ldaa #%10000000 ; сохраняем первый диод
 	staa start_led
-	jmp end_scan ; переход в конец кода. Для команды BRA данный переход слишком делёкий!
+	jmp end_scan ; переход в конец кода
 check2A:	
 	tba
 	anda #%0010 ; нажата ли кнопка во втором столбце?
 	beq check3A ; переход, если нет
-	ldaa #%00010000 ; вывод цифры "2"
-	staa porta ; вывод цифры "2"
+	ldaa #%00010000 ; сохраняем цифру "2"
 	staa start_number
-	ldaa #%01000000 ; зажигаем второй диод
-	staa portb ; зажигаем второй диод
+	ldaa #%01000000 ; сохраняем второй диод
 	staa start_led
 	jmp end_scan ; переход в конец кода
 check3A:	
 	tba
-	ldaa #%00011000 ; вывод цифры "3"
-	staa porta ; вывод цифры "3"
+	ldaa #%00011000 ; сохраняем цифру "3"
 	staa start_number
-	ldaa #%00100000 ; зажигаем третий диод
-	staa portb ; зажигаем третий диод
+	ldaa #%00100000 ; сохраняем третий диод
 	staa start_led
 	jmp end_scan
 
@@ -73,31 +79,25 @@ check1B:
 	tba
 	anda #%0100 ; нажата ли кнопка в первом столбце?
 	beq check2B ; переход, если нет
-	ldaa #%00100000 ; вывод цифры "4"
-	staa porta ; вывод цифры "4"
+	ldaa #%00100000 ; сохраняем цифру "4"
 	staa start_number
-	ldaa #%00010000 ; зажигаем четвертый диод
-	staa portb ; зажигаем четвертый диод
+	ldaa #%00010000 ; сохраняем четвертый диод
 	staa start_led
 	jmp end_scan
 check2B:	
 	tba
 	anda #%0010 ; нажата ли кнопка во втором столбце?
 	beq check3B
-	ldaa #%00101000 ; вывод цифры "5"
-	staa porta ; вывод цифры "5"
+	ldaa #%00101000 ; сохраняем цифру "5"
 	staa start_number
-	ldaa #%00001000 ; зажигаем пятый диод
-	staa portb ; зажигаем пятый диод
+	ldaa #%00001000 ; сохраняем пятый диод
 	staa start_led
 	jmp end_scan
 check3B:	
 	tba
-	ldaa #%00110000 ; вывод цифры "6"
-	staa porta ; вывод цифры "6"
+	ldaa #%00110000 ; сохраняем цифру "6"
 	staa start_number
-	ldaa #%00000100 ; зажигаем шестой диод
-	staa portb ; зажигаем шестой диод
+	ldaa #%00000100 ; сохраняем шестой диод
 	staa start_led
 	jmp end_scan
 	
@@ -108,22 +108,18 @@ check1C:
 	tba
 	anda #%0100 ; нажата ли кнопка в первом столбце?
 	beq check2C ; переход, если нет
-	ldaa #%00111000 ; вывод цифры "7"
-	staa porta ; вывод цифры "7"
+	ldaa #%00111000 ; сохраняем цифру "7"
 	staa start_number
-	ldaa #%00000010 ; зажигаем седьмой диод
-	staa portb ; зажигаем седьмой диод
+	ldaa #%00000010 ; сохраняем седьмой диод
 	staa start_led
 	jmp end_scan
 check2C:	
 	tba
 	anda #%0010 ; нажата ли кнопка во втором столбце?
 	beq check3C ; переход, если нет
-	ldaa #%01000000 ; вывод цифры "8"
-	staa porta ; вывод цифры "8"
+	ldaa #%01000000 ; сохраняем цифру "8"
 	staa start_number
-	ldaa #%00000001 ; зажигаем восьмой диод
-	staa portb ; зажигаем восьмой диод
+	ldaa #%00000001 ; сохраняем восьмой диод
 	staa start_led
 	jmp end_scan
 check3C:	
@@ -136,10 +132,9 @@ check1D:
 	tba
 	anda #%0100 ; нажата ли кнопка в первом столбце?
 	beq check2D ; переход, если нет
-	ldaa start_led ; иначе проверяем инициализацию диода
-	cmpa #%00000000
-	bne start_left ; если диод инициализирован, то запускаем цикл
-	jmp end_scan ; иначе продолжаем скан кнопок
+	ldaa #%10000000 ; иначе задаем направление влево
+	staa direction
+	jmp end_scan ; продолжаем скан кнопок
 check2D:	
 	tba
 	anda #%0010 ; нажата ли кнопка во втором столбце?
@@ -147,72 +142,77 @@ check2D:
 	jmp end_scan
 check3D:	
 	tba
-	ldaa start_led ; проверяем инициализацию диода
-	cmpa #%00000000
-	bne start_right ; если диод инициализирован, то запускаем цикл
-	jmp end_scan ; иначе продолжаем скан кнопок
+	ldaa #%00000001 ; задаем направление вправо
+	staa direction
+	jmp end_scan ; продолжаем скан кнопок
 	
 end_scan:
 	aslb ; сдвиг регистра B влево
-	jmp scan_keys ; переход в начало цикла сканирования
-	
-start_right:
-	ldaa start_number
-	ldab start_led
-	bsr shift_right_loop
-	bsr shift_left_loop
-	bsr shift_left
-	jmp end_show
+	jmp scan_button ; переход в начало цикла сканирования
 
-start_left:
-	ldaa start_number
-	ldab start_led
-	bsr shift_left_loop
-	bsr shift_right_loop
-	bsr shift_right
-	jmp end_show
-
-shift_right_loop:
-	bsr	shift_right ; подпрограмма движения
-	cmpb #%00000001 ; проверяем конец движения вправо
-	bne shift_right_loop ; продолжаем движение, если не упёрлись
-	rts ; иначе возвращаемся
-
-shift_left_loop:
-	bsr	shift_left ; подпрограмма движения
-	cmpb #%10000000 ; проверяем конец движения влево
-	bne shift_left_loop ; продолжаем движение, если не упёрлись
-	rts ; иначе возвращаемся
-
-shift_right:
-	staa porta ; вывод цифры
-	stab portb ; вывод диода
-	bsr	delay
-	ldaa start_number
-	adda #%00001000 ; инкремент цифры
-	staa start_number
-	lsrb ; сдвиг вправо
-	rts
-
-shift_left:
-	staa porta ; вывод цифры
-	stab portb ; вывод диода
-	bsr	delay
-	ldaa start_number
-	suba #%00001000 ; декремент цифры
-	staa start_number
-	lslb ; сдвиг влево
-	rts
-
-end_show:
-	ldaa #%00000000 ; вывод цифры "0"
-	staa porta ; вывод цифры "0"
+check_button:
+    ldaa porta ; Загружаем значение с порта A в акк. A
+	anda #%00000001 ; Проверяем, нажата ли кнопка
+	beq loop ; Если нажата, то запускаем цикл
+	ldaa #%00000000 ; сохраняем цифру "0"
+	staa porta ; сохраняем цифру "0"
 	staa start_number
 	ldaa #%00000000 ; выключаем диоды
 	staa portb ; выключаем диоды
 	staa start_led
 	ldab col_count
 	jmp scan_keys
+
+loop:
+	bsr	show ; выводим начальное состояние
+	ldaa start_led ; загружаем из памяти диод
+	cmpa #%00000001 ; проверяем конец движения вправо
+	beq set_left ; меняем, если упёрлись
+	cmpa #%10000000 ; иначе проверяем конец движения влево
+	beq set_right ; меняем, если упёрлись
+loop_next:
+	ldaa direction ; загружаем из памяти направление
+	cmpa #%00000001 ; проверяем направление вправо
+	beq shift_right ; если вправо, то шаг вправо
+	bra shift_left ; иначе шаг влево
+
+set_right:
+	ldaa #%00000001 ; задаем направление вправо
+	staa direction
+	bra loop_next
+set_left:
+	ldaa #%10000000 ; задаем направление влево
+	staa direction
+	bra loop_next
+
+shift_right:
+	ldaa start_number
+	adda #%00001000 ; инкремент цифры
+	lsrb ; сдвиг вправо
+	bsr save_state ; сохраняем состояние
+	bsr	show ; вывод состояния
+	bra check_button ; возврат к проверке кнопки
+
+shift_left:
+	ldaa start_number
+	suba #%00001000 ; декремент цифры
+	lslb ; сдвиг влево
+	bsr save_state ; сохраняем состояние
+	bsr	show ; вывод состояния
+	bra check_button ; возврат к проверке кнопки
+
+save_state:
+	staa start_number ; сохраняем цифру
+	stab start_led ; сохраняем диод
+	rts
+
+show:
+	ldaa start_number ; загружаем из памяти цифру
+	ldab start_led ; загружаем из памяти диод
+	staa porta ; выводим цифру
+	stab portb ; выводим диод
+	bsr	delay
+	rts
 
 delay:
 	ldaa #3 ; 0,524sec*3=1.5sec
