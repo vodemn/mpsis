@@ -24,17 +24,18 @@ begin:
 	ldaa init_PC ; инициализация битов 0 - 2, 7 порта C на выход
 	staa ddrc	 ; бит установлен в 0 - на вход, 1 - на выход
 	ldab col_count ; загрузка начального значения счетчика колонок
+
+init:
 	ldaa #%10000000
 	staa start_led
 	ldaa #%00000001
 	staa direction
 	staa start_number
-
 scan_button:
     ldaa porta ; загружаем значение с порта A в акк. A
 	anda #%00000001 ; проверяем, нажата ли кнопка
 	beq scan_keys ; если не нажата, то проверяем клавиатуру
-	jmp loop ; иначе запускаем цикл
+	jmp check_button ; иначе запускаем цикл
 	
 scan_keys:
 	cmpb #%08 ; проверка на переполнение счечика
@@ -151,9 +152,10 @@ end_scan:
 	jmp scan_button ; переход в начало цикла сканирования
 
 check_button:
+	bsr	show ; вывод состояния
     ldaa porta ; Загружаем значение с порта A в акк. A
 	anda #%00000001 ; Проверяем, нажата ли кнопка
-	beq loop ; Если нажата, то запускаем цикл
+	bne loop ; Если нажата, то запускаем цикл
 	ldaa #%00000000 ; сохраняем цифру "0"
 	staa porta ; сохраняем цифру "0"
 	staa start_number
@@ -161,10 +163,9 @@ check_button:
 	staa portb ; выключаем диоды
 	staa start_led
 	ldab col_count
-	jmp scan_keys
+	jmp init
 
 loop:
-	bsr	show ; выводим начальное состояние
 	ldaa start_led ; загружаем из памяти диод
 	cmpa #%00000001 ; проверяем конец движения вправо
 	beq set_left ; меняем, если упёрлись
@@ -190,7 +191,6 @@ shift_right:
 	adda #%00001000 ; инкремент цифры
 	lsrb ; сдвиг вправо
 	bsr save_state ; сохраняем состояние
-	bsr	show ; вывод состояния
 	bra check_button ; возврат к проверке кнопки
 
 shift_left:
@@ -198,7 +198,6 @@ shift_left:
 	suba #%00001000 ; декремент цифры
 	lslb ; сдвиг влево
 	bsr save_state ; сохраняем состояние
-	bsr	show ; вывод состояния
 	bra check_button ; возврат к проверке кнопки
 
 save_state:
